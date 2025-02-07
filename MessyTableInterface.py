@@ -109,13 +109,14 @@ class MessyTableDataset(Dataset):
 
         fig.suptitle(instance_scene)
         plt.show(block = False)
-        plt.pause(0.1)
+        plt.pause(1)
 
     def __len__(self):
         return len(self.instance_df)
 
     def is_valid_bbox(self, bbox):
-        bbox = [float(item.strip()) for item in bbox.strip('[]').split(',')]
+        if type(bbox) == str:
+            bbox = [float(item.strip()) for item in bbox.strip('[]').split(',')]
         bbox = [int(np.ceil(x)) for x in bbox]
         x1, y1, x2, y2 = bbox
         H = y2 - y1
@@ -201,7 +202,7 @@ class MessyTableDataset(Dataset):
         return images, bboxes, object_imgs, projection_matricies, instance_scene
         
 def display_batch(data_loader):
-    fig, axes = plt.subplots(ncols = data_loader.batch_size, nrows = data_loader.dataset.set_size, figsize=(25, 25))
+    fig, axes = plt.subplots(ncols = data_loader.batch_size, nrows = data_loader.dataset.set_size)
     data = next(iter(data_loader))
     images_batch, bboxes_batch, object_imgs_batch, projection_matricies_batch, instance_scene_batch = data
     #print(f"{type(images_batch)=}, {type(bboxes_batch)=}, {type(object_imgs_batch)=}, {type(projection_matricies_batch)=}, {type(instance_scene_batch)=}")
@@ -230,7 +231,7 @@ def display_batch(data_loader):
             axes[i][j].axis('off')
             #print(f"{i=}, {j=}")
     plt.show(block = False)
-    plt.pause(0.1)
+    plt.pause(1)
 
 
 if __name__ == "__main__":
@@ -244,5 +245,5 @@ if __name__ == "__main__":
             #dataset.debug()
             data_loader = DataLoader(dataset, batch_size=bs, shuffle=True)
             display_batch(data_loader)
-            break
-    plt.show()
+            #break
+    #plt.show()

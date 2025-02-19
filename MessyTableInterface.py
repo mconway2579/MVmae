@@ -13,8 +13,8 @@ import random
 import numpy as np
 
 class MessyTableDataset(Dataset):
-    def __init__(self, file_path, set_size=2, min_pixel_area=2000):
-        self.image_shape = (224, 224)
+    def __init__(self, file_path, set_size=2, min_pixel_area=2000, img_shape = (224, 224)):
+        self.image_shape = img_shape
         self.transform = transforms.Compose([
             transforms.Lambda(lambda img: Image.fromarray(img)),
             transforms.Resize(self.image_shape),
@@ -234,6 +234,7 @@ def display_batch(data_loader):
     plt.pause(1)
 
 
+
 if __name__ == "__main__":
     bs = 2
     label_dir = './MessyTableData/labels'
@@ -243,7 +244,9 @@ if __name__ == "__main__":
             file_path = os.path.join(label_dir, label_file)
             dataset = MessyTableDataset(file_path, set_size=5)
             #dataset.debug()
-            data_loader = DataLoader(dataset, batch_size=bs, shuffle=True)
+            data_loader = DataLoader(dataset, batch_size=bs, shuffle=True, num_workers=8)
+            for _ in (tqdm(data_loader)):
+                pass
             display_batch(data_loader)
             #break
     #plt.show()

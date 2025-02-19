@@ -8,9 +8,11 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.optim as optim
+torch.set_float32_matmul_precision('high')
+from torch import compile
 
-
-def epoch(model, loader, loss_fn, name, optimizer=None):
+#@torch.compile
+def epoch_func(model, loader, loss_fn, name, optimizer=None):
     if optimizer is None:
         model.eval()
     else:
@@ -24,8 +26,9 @@ def epoch(model, loader, loss_fn, name, optimizer=None):
         mask = None
         emb = None
         if optimizer is not None:
-            with torch.no_grad():
-                output, mask, emb = model(object_imgs_batch)
+            with torch.inference_mode():
+                with torch.no_grad():
+                    output, mask, emb = model(object_imgs_batch)
         else:
             output, mask, emb = model(object_imgs_batch)
 
@@ -88,18 +91,24 @@ if __name__ == "__main__":
     test_datasets = []
     val_datasets = []
     #for suffix in ["_easy.json", "_medium.json", "_hard.json", ".json"]:
-    for suffix in ["_hard.json", ".json"]:
+    #for suffix in ["_hard.json", ".json"]:
+    for suffix in [".json"]:
         test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape)))
         val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape)))
 
-    loader_workers = 2
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers)
-    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers)) for name, dataset in test_datasets]
-    val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers)) for name, dataset in val_datasets]
+    loader_workers = 8
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
+    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
+    val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
 
     #create model, optimizer, and loss function
     seq_length = train_dataset.image_shape[0] * train_dataset.image_shape[1]
     model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length)
+    model = compile(model)  # Wrap the model with torch.compile
+
+    # Move model to CUDA if available
+    if torch.cuda.is_available():
+        model = model.to('cuda')
 
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     mse_loss = nn.MSELoss()
@@ -114,17 +123,18 @@ if __name__ == "__main__":
     for epoch in range(n_epochs):
         print(f"\n\nEpoch {epoch}:\n")
         #do a training epoch
-        train_loss = epoch(model, train_loader, mse_loss, name=suffix, optimizer=optimizer)
+        #train_loss = epoch_func(model, train_loader, mse_loss, name=suffix, optimizer=optimizer)
+        train_loss = 1
         training_loss_history.append(train_loss)
         print(f"Train Loss: {train_loss}")
 
         #do a validation epoch for each validation set
-        validation_losses = [(suffix, epoch(model, val_loader, mse_loss, name=suffix)) for suffix, val_loader in val_loaders]
+        validation_losses = [(suffix, epoch_func(model, val_loader, mse_loss, name=suffix)) for suffix, val_loader in val_loaders]
         validation_loss_history.append(validation_losses)
         print(f"Validation Losses: {validation_losses}")
 
         #if this is our best model, save it
-        total_val_loss = [loss for name, loss in validation_losses if name == "val.json"]
+        total_val_loss = [loss for name, loss in validation_losses if name == "val.json"][0]
         if total_val_loss < best_val_loss:
             best_val_loss = total_val_loss
             best_model = model.state_dict()
@@ -136,8 +146,8 @@ if __name__ == "__main__":
         print()
     
     model.load_state_dict(best_model)
-    test_losses = [(name, epoch(model, test_loader, mse_loss, name = suffix)) for name, test_loader in test_loaders]
-    total_test_loss = [loss for name, loss in test_losses if name == "test.json"]
+    test_losses = [(name, epoch_func(model, test_loader, mse_loss, name = suffix)) for name, test_loader in test_loaders]
+    total_test_loss = [loss for name, loss in test_losses if name == "test.json"][0]
     print(f"Test Loss: {total_test_loss}")
     with open(f"{out_dir}/metrics.txt", "w") as f:
         f.write("Test loss: {total_test_loss}\n")
@@ -172,5 +182,5 @@ if __name__ == "__main__":
     plt.savefig(f"{out_dir}/losses.png")
     print(f"Results saved to {out_dir}")
     print("Done")
-    
-        
+
+

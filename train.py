@@ -4,15 +4,19 @@ from MaskedAutoEncoder import MaskedAutoEncoder
 from tqdm import tqdm
 import os
 import torch
+print(torch.__version__)  # PyTorch version
+print(torch.version.cuda)  # CUDA version
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.optim as optim
-torch.set_float32_matmul_precision('high')
+#torch.set_float32_matmul_precision('high')
 from torch import compile
+from torch.amp import GradScaler
+
 
 #@torch.compile
-def epoch_func(model, loader, loss_fn, name, optimizer=None):
+def epoch_func(model, loader, loss_fn, name, optimizer=None, scaler=None):
     if optimizer is None:
         model.eval()
     else:
@@ -20,25 +24,28 @@ def epoch_func(model, loader, loss_fn, name, optimizer=None):
     total_loss = 0
     n = 0
     for data in tqdm(loader, desc=name):
-        object_imgs_batch= data[2][0].to(model.device)
+        object_imgs_batch= data[2][0].to(model.device, non_blocking=True)
         n += len(object_imgs_batch)
         output = None
         mask = None
         emb = None
-        if optimizer is not None:
-            with torch.inference_mode():
-                with torch.no_grad():
-                    output, mask, emb = model(object_imgs_batch)
-        else:
-            output, mask, emb = model(object_imgs_batch)
+        loss = None
+        with torch.autocast(device_type="cuda"):
+            if optimizer is None:
+                with torch.inference_mode():
+                    with torch.no_grad():
+                        output, mask, emb = model(object_imgs_batch)
+            else:
+                output, mask, emb = model(object_imgs_batch)
 
-        loss = loss_fn(output, object_imgs_batch)
-        total_loss += loss.item()
+            loss = loss_fn(output, object_imgs_batch)
+            total_loss += loss.item()
 
         if optimizer is not None:
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
     return total_loss / n
 
 def get_output_imgs(model, data_loader, save_file):
@@ -47,7 +54,7 @@ def get_output_imgs(model, data_loader, save_file):
         #print(data)
         #print(type(data))
         print(len(data))
-        object_imgs_batch= data[2][0].to(model.device)
+        object_imgs_batch= data[2][0].to(model.device, non_blocking=True)
         print(f"{type(object_imgs_batch)=}")
         print(f"{object_imgs_batch.shape=}")
         
@@ -71,14 +78,7 @@ def get_output_imgs(model, data_loader, save_file):
         plt.savefig(save_file)
         return save_file
 
-if __name__ == "__main__":
-    #hyper parameters
-    hidden_dim = 128
-    batch_size = 8
-    set_size = 2
-    img_shape = (32, 32)
-    n_epochs = 2
-
+def run_experiment(hidden_dim = 128, batch_size = 32, set_size = 1, img_shape = (32, 32), n_epochs = 2):
     #save directories
     os.makedirs("./outputs/", exist_ok=True)
     out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{img_shape=}_{n_epochs=}"
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape)))
         val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape)))
 
-    loader_workers = 8
+    loader_workers = 16
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
     test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
     val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
@@ -118,13 +118,14 @@ if __name__ == "__main__":
     best_model = None
     training_loss_history = []
     validation_loss_history = []
+    scaler = GradScaler('cuda')
 
     #training loop
+    print(f"training on {model.device}")
     for epoch in range(n_epochs):
         print(f"\n\nEpoch {epoch}:\n")
         #do a training epoch
-        #train_loss = epoch_func(model, train_loader, mse_loss, name=suffix, optimizer=optimizer)
-        train_loss = 1
+        train_loss = epoch_func(model, train_loader, mse_loss, name="Training", optimizer=optimizer, scaler=scaler)
         training_loss_history.append(train_loss)
         print(f"Train Loss: {train_loss}")
 
@@ -184,3 +185,20 @@ if __name__ == "__main__":
     print("Done")
 
 
+if __name__ == "__main__":
+    run_experiment()
+
+"""
+if __name__ == "__main__":
+    with profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True
+    ) as prof:
+        with record_function("run_experiment"):
+            run_experiment()
+
+    # Print profiling results
+    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+"""

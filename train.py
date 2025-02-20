@@ -57,14 +57,14 @@ def get_output_imgs(model, data_loader, save_file):
     for data in data_loader:
         #print(data)
         #print(type(data))
-        print(len(data))
+        #print(len(data))
         object_imgs_batch= data[2][0].to(model.device, non_blocking=True)
-        print(f"{type(object_imgs_batch)=}")
-        print(f"{object_imgs_batch.shape=}")
+        #print(f"{type(object_imgs_batch)=}")
+        #print(f"{object_imgs_batch.shape=}")
         
 
         fig_side_length = int(np.ceil(np.sqrt(len(object_imgs_batch))))
-        print(f"{fig_side_length=}")
+        #print(f"{fig_side_length=}")
         fig, axes = plt.subplots(fig_side_length, fig_side_length)
         axes = axes.flatten()
 

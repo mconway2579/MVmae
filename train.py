@@ -7,8 +7,8 @@ os.environ["PYTORCH_FX_DISABLE_SYMBOLIC_SHAPES"] = "1"
 import warnings
 warnings.filterwarnings("ignore", message=".*not in var_ranges.*")
 import torch
-print(torch.__version__)  # PyTorch version
-print(torch.version.cuda)  # CUDA version
+print(f"{torch.__version__=}")  # PyTorch version
+print(f"{torch.version.cuda=}")  # CUDA version
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
@@ -82,7 +82,7 @@ def get_output_imgs(model, data_loader, save_file):
         plt.savefig(save_file)
         return save_file
 
-def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = (32, 32), n_epochs = 5, mask_percentage=0.75):
+def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = (64, 64), n_epochs = 5, mask_percentage=0.75, loader_workers = 30):
     #save directories
     os.makedirs("./outputs/", exist_ok=True)
     out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{img_shape=}_{n_epochs=}_{mask_percentage=}"
@@ -94,13 +94,14 @@ def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = 
     train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, img_shape=img_shape, train=True)
     test_datasets = []
     val_datasets = []
-    #for suffix in ["_easy.json", "_medium.json", "_hard.json", ".json"]:
+    #
     #for suffix in ["_hard.json", ".json"]:
-    for suffix in [".json"]:
+    #for suffix in [".json"]:
+    for suffix in ["_easy.json", "_medium.json", "_hard.json", ".json"]:
         test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
         val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
 
-    loader_workers = 16
+    
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
     test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
     val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
@@ -192,12 +193,24 @@ def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = 
     print(f"Results saved to {out_dir}")
     print("Done")
 
-"""
+
 if __name__ == "__main__":
+    experiment_configs = [
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0},
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.25},
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.5},
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.75},
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.9},
+        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 1},
+    ]
+
+    for config in experiment_configs:
+        run_experiment(**config)
     run_experiment()
 
-"""
+
     
+"""
 if __name__ == "__main__":
     os.makedirs("./profile/", exist_ok=True)
     with profile(
@@ -215,3 +228,4 @@ if __name__ == "__main__":
     summary = prof.key_averages().table(sort_by="cuda_time_total")
     with open("./profile/profile_summary.txt", "w") as f:
         f.write(summary)
+"""

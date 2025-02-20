@@ -1,0 +1,47 @@
+Test loss: 0.001171655542225199
+Best Model Validation Loss: 0.001076744444813458
+Test Losses:
+   test_easy.json: 0.0010445210087774894
+   test_medium.json: 0.0011529710202513685
+   test_hard.json: 0.0012580379589092598
+   test.json: 0.001171655542225199
+Epoch 0:
+   Train Loss: 0.00200926107315044
+   Validation Losses:
+      val_easy.json: 0.0011886693116247898
+      val_medium.json: 0.0012728105280688574
+      val_hard.json: 0.001418518896981689
+      val.json: 0.0013118391848069876
+
+Epoch 1:
+   Train Loss: 0.0010123837423955675
+   Validation Losses:
+      val_easy.json: 0.000942210643322716
+      val_medium.json: 0.0010682008916691895
+      val_hard.json: 0.001147025555667553
+      val.json: 0.001076744444813458
+
+Epoch 2:
+   Train Loss: 0.0009795656071243848
+   Validation Losses:
+      val_easy.json: 0.0011653926937403546
+      val_medium.json: 0.0012559834431058775
+      val_hard.json: 0.0013817684279181246
+      val.json: 0.0012826259434310537
+
+Epoch 3:
+   Train Loss: 0.0009725041891139952
+   Validation Losses:
+      val_easy.json: 0.0010672578353897887
+      val_medium.json: 0.0011610214296960406
+      val_hard.json: 0.001276991916748204
+      val.json: 0.001186701473036407
+
+Epoch 4:
+   Train Loss: 0.0009728687405580522
+   Validation Losses:
+      val_easy.json: 0.0010260245967660853
+      val_medium.json: 0.001140428334410818
+      val_hard.json: 0.0012731942383422984
+      val.json: 0.0011702173761451962
+

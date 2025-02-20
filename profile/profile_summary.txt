@@ -1,0 +1,106 @@
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                         run_experiment         0.00%       0.000us         0.00%       0.000us       0.000us     1144.937s        85.60%     1144.937s     1144.937s             1  
+                                         run_experiment        -1.41%  -16834040.696us        96.39%     1149.172s     1149.172s       0.000us         0.00%      100.925s      100.925s             1  
+autograd::engine::evaluate_function: CompiledFunctio...         0.03%     345.461ms         3.22%       38.403s       9.424ms       0.000us         0.00%       80.545s      19.766ms          4075  
+                               CompiledFunctionBackward         0.88%       10.535s         3.19%       38.056s       9.339ms      38.294ms         0.00%       80.545s      19.766ms          4075  
+                                  Torch-Compiled Region         0.66%        7.885s         3.85%       45.910s       5.161ms     643.845ms         0.05%       77.213s       8.680ms          8895  
+                                                triton_         0.00%       0.000us         0.00%       0.000us       0.000us       76.655s         5.73%       76.655s      66.652us       1150086  
+                                               aten::mm         1.00%       11.933s         1.17%       13.945s      40.268us       54.102s         4.04%       54.103s     156.224us        346318  
+                                       CompiledFunction         0.80%        9.502s         2.09%       24.885s       6.099ms     785.450ms         0.06%       42.729s      10.473ms          4080  
+                        aten::_flash_attention_backward         0.08%     958.055ms         0.32%        3.828s     156.581us       24.027s         1.80%       25.126s       1.028ms         24450  
+     aten::_scaled_dot_product_flash_attention_backward         0.03%     407.849ms         0.41%        4.945s     201.548us       0.000us         0.00%       25.124s       1.024ms         24535  
+                                  cudaStreamSynchronize         7.84%       93.506s         8.36%       99.697s       7.216ms       0.000us         0.00%       23.430s       1.696ms         13817  
+void pytorch_flash::flash_bwd_dq_dk_dv_loop_seqk_par...         0.00%       0.000us         0.00%       0.000us       0.000us       21.551s         1.61%       21.551s     881.425us         24450  
+                         aten::_flash_attention_forward         0.11%        1.325s         0.25%        2.934s      54.998us       18.335s         1.37%       18.336s     343.753us         53340  
+              aten::_scaled_dot_product_flash_attention         0.05%     566.063ms         0.36%        4.326s      80.895us       0.000us         0.00%       18.281s     341.811us         53482  
+ampere_fp16_s1688gemm_fp16_128x64_sliced1x2_ldg8_f2f...         0.00%       0.000us         0.00%       0.000us       0.000us       14.274s         1.07%       14.274s     401.909us         35516  
+triton_poi_fused_native_dropout_backward_threshold_b...         0.02%     257.400ms         0.02%     286.471ms      17.596us       13.338s         1.00%       13.338s     819.264us         16280  
+                               triton_poi_fused_relu_11         0.02%     255.877ms         0.02%     277.444ms      14.405us       11.265s         0.84%       11.265s     584.917us         19260  
+         ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_tn         0.00%       0.000us         0.00%       0.000us       0.000us       11.255s         0.84%       11.255s     316.426us         35570  
+ampere_fp16_s16816gemm_fp16_64x128_ldg8_f2f_stages_6...         0.00%       0.000us         0.00%       0.000us       0.000us       11.033s         0.82%       11.033s     338.845us         32560  
+void pytorch_flash::flash_fwd_kernel<pytorch_flash::...         0.00%       0.000us         0.00%       0.000us       0.000us        9.244s         0.69%        9.244s     378.076us         24450  
+void pytorch_flash::flash_fwd_kernel<pytorch_flash::...         0.00%       0.000us         0.00%       0.000us       0.000us        9.091s         0.68%        9.091s     314.691us         28890  
+void cutlass::Kernel2<cutlass_80_tensorop_f16_s16816...         0.00%       0.000us         0.00%       0.000us       0.000us        6.802s         0.51%        6.802s     208.900us         32560  
+                               Optimizer.step#Adam.step         0.00%       0.000us         0.00%       0.000us       0.000us        6.744s         0.50%        6.744s       1.656ms          4072  
+                triton_poi_fused_native_dropout_relu_18         0.01%     154.183ms         0.01%     173.223ms      21.280us        6.073s         0.45%        6.073s     746.031us          8140  
+            triton_poi_fused_relu_threshold_backward_30         0.02%     190.114ms         0.02%     191.805ms      15.709us        5.279s         0.39%        5.279s     432.378us         12210  
+          ampere_fp16_s1688gemm_fp16_256x64_ldg8_f2f_nn         0.00%       0.000us         0.00%       0.000us       0.000us        4.695s         0.35%        4.695s     288.394us         16280  
+CachingAutotuner.benchmark_all_configs (dynamo_timed...         0.00%       0.000us         0.00%       0.000us       0.000us        4.508s         0.34%        4.508s     115.577ms            39  
+triton_poi_fused_native_dropout_relu_threshold_backw...         0.01%     101.653ms         0.01%     104.739ms      25.734us        3.684s         0.28%        3.684s     905.101us          4070  
+                                triton_red_fused_sum_10         0.02%     242.694ms         0.02%     268.429ms      16.488us        3.564s         0.27%        3.564s     218.922us         16280  
+                triton_poi_fused_native_dropout_relu_14         0.01%      89.937ms         0.01%     101.972ms      25.054us        3.039s         0.23%        3.039s     746.694us          4070  
+CachingAutotuner.benchmark_all_configs (dynamo_timed...         0.02%     297.749ms         0.38%        4.575s     117.310ms       0.000us         0.00%        2.949s      75.617ms            39  
+                                            aten::fill_         0.03%     303.607ms         0.03%     321.937ms      11.787us        2.814s         0.21%        2.814s     103.032us         27313  
+                                            aten::zero_         0.01%      88.917ms         0.02%     240.461ms      10.885us       0.000us         0.00%        2.806s     127.016us         22092  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us        2.799s         0.21%        2.799s     265.739us         10532  
+                                              aten::bmm         0.14%        1.641s         0.16%        1.922s      44.237us        2.474s         0.18%        2.474s      56.955us         43444  
+ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_3...         0.00%       0.000us         0.00%       0.000us       0.000us        2.088s         0.16%        2.088s      30.026us         69554  
+void cutlass::Kernel2<cutlass_80_tensorop_f16_s16816...         0.00%       0.000us         0.00%       0.000us       0.000us        2.043s         0.15%        2.043s      70.805us         28854  
+                               triton_poi_fused_clone_6         0.02%     259.297ms         0.02%     285.617ms      17.544us        1.735s         0.13%        1.735s     106.570us         16280  
+                                            aten::copy_         0.18%        2.193s         0.20%        2.356s      25.920us        1.651s         0.12%        1.651s      18.163us         90912  
+     triton_red_fused__to_copy_add_native_layer_norm_14         0.03%     367.782ms         0.03%     399.988ms      20.768us        1.510s         0.11%        1.510s      78.426us         19260  
+                                  cudaDeviceSynchronize         0.36%        4.240s         0.36%        4.273s       7.685ms       3.024ms         0.00%        1.510s       2.716ms           556  
+void pytorch_flash::flash_bwd_convert_dq_kernel<pyto...         0.00%       0.000us         0.00%       0.000us       0.000us        1.276s         0.10%        1.276s      52.187us         24450  
+triton_red_fused__to_copy_add_native_dropout_native_...         0.02%     248.552ms         0.02%     273.316ms      33.577us        1.250s         0.09%        1.250s     153.569us          8140  
+                                            aten::clone         0.02%     263.801ms         0.16%        1.954s      37.446us       0.000us         0.00%        1.248s      23.923us         52172  
+void pytorch_flash::flash_bwd_dot_do_o_kernel<true, ...         0.00%       0.000us         0.00%       0.000us       0.000us        1.201s         0.09%        1.201s      49.103us         24450  
+     triton_red_fused_add_native_layer_norm_backward_23         0.02%     265.212ms         0.03%     298.272ms      18.321us        1.151s         0.09%        1.151s      70.710us         16280  
+ampere_fp16_s16816gemm_fp16_64x64_ldg8_f2f_stages_64...         0.00%       0.000us         0.00%       0.000us       0.000us        1.118s         0.08%        1.118s      27.468us         40720  
+                              triton_poi_fused_clone_26         0.02%     261.925ms         0.02%     287.913ms      17.685us        1.108s         0.08%        1.108s      68.050us         16280  
+void at::native::elementwise_kernel<128, 4, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us        1.099s         0.08%        1.099s      22.501us         48840  
+                                       aten::contiguous         0.01%      73.656ms         0.15%        1.735s      35.455us       0.000us         0.00%        1.098s      22.447us         48937  
+triton_red_fused__to_copy_add_native_dropout_backwar...         0.02%     190.042ms         0.02%     216.323ms      26.575us        1.085s         0.08%        1.085s     133.251us          8140  
+ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_3...         0.00%       0.000us         0.00%       0.000us       0.000us        1.004s         0.08%        1.004s      24.675us         40700  
+triton_red_fused__to_copy_add_clone_native_layer_nor...         0.02%     188.242ms         0.02%     217.599ms      26.732us     953.153ms         0.07%     953.153ms     117.095us          8140  
+ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_6...         0.00%       0.000us         0.00%       0.000us       0.000us     867.713ms         0.06%     867.713ms      53.299us         16280  
+triton_red_fused_add_native_dropout_native_layer_nor...         0.02%     193.698ms         0.02%     218.046ms      26.787us     804.915ms         0.06%     804.917ms      98.884us          8140  
+triton_red_fused_add_clone_native_dropout_native_lay...         0.01%     120.066ms         0.01%     140.196ms      34.446us     794.326ms         0.06%     794.326ms     195.166us          4070  
+triton_red_fused__to_copy_add_native_layer_norm_back...         0.02%     214.609ms         0.02%     237.607ms      19.460us     777.635ms         0.06%     777.635ms      63.688us         12210  
+triton_red_fused__to_copy_add_clone_native_dropout_n...         0.01%     117.440ms         0.01%     124.149ms      30.504us     678.614ms         0.05%     678.614ms     166.736us          4070  
+                                triton_poi_fused_view_7         0.03%     388.627ms         0.03%     415.324ms      12.756us     669.325ms         0.05%     669.353ms      20.558us         32560  
+triton_per_fused__to_copy_add_cat_native_layer_norm_...         0.01%     136.278ms         0.01%     158.362ms      32.889us     648.104ms         0.05%     648.104ms     134.601us          4815  
+                                triton_red_fused_sum_24         0.03%     330.401ms         0.03%     369.743ms      22.712us     641.311ms         0.05%     641.311ms      39.393us         16280  
+     triton_per_fused__to_copy_add_native_layer_norm_12         0.02%     202.055ms         0.02%     226.417ms      23.512us     629.384ms         0.05%     629.384ms      65.357us          9630  
+triton_red_fused_add_native_dropout_native_layer_nor...         0.01%     126.469ms         0.01%     130.339ms      32.024us     598.814ms         0.04%     598.814ms     147.129us          4070  
+                               Optimizer.step#Adam.step         0.39%        4.619s         0.92%       11.025s       2.708ms       0.000us         0.00%     594.538ms     146.006us          4072  
+                              triton_poi_fused_clone_23         0.01%     117.289ms         0.01%     125.620ms      15.432us     592.682ms         0.04%     592.682ms      72.811us          8140  
+triton_poi_fused__scaled_dot_product_flash_attention...         0.02%     228.409ms         0.02%     248.526ms      12.904us     588.408ms         0.04%     588.492ms      30.555us         19260  
+triton_red_fused_add_clone_native_layer_norm_backwar...         0.01%      94.589ms         0.01%     109.945ms      27.014us     566.934ms         0.04%     566.934ms     139.296us          4070  
+triton_red_fused_add_native_dropout_native_layer_nor...         0.01%     109.209ms         0.01%     117.638ms      28.904us     549.568ms         0.04%     549.568ms     135.029us          4070  
+                                triton_poi_fused_view_8         0.02%     291.206ms         0.03%     312.258ms      12.787us     548.475ms         0.04%     548.594ms      22.465us         24420  
+                       triton_red_fused__to_copy_sum_37         0.01%      79.531ms         0.01%      79.893ms      19.630us     515.559ms         0.04%     515.559ms     126.673us          4070  
+triton_per_fused__to_copy_add_cat_native_layer_norm_...         0.01%     127.908ms         0.01%     147.333ms      30.599us     514.655ms         0.04%     514.655ms     106.886us          4815  
+triton_red_fused__to_copy_add_clone_native_layer_nor...         0.01%      98.151ms         0.01%     113.225ms      27.819us     475.170ms         0.04%     475.170ms     116.749us          4070  
+                     triton_poi_fused__to_copy_clone_16         0.02%     258.886ms         0.02%     282.861ms      17.375us     467.432ms         0.03%     467.432ms      28.712us         16280  
+triton_red_fused__to_copy_add_native_dropout_native_...         0.01%     108.835ms         0.01%     123.901ms      30.442us     458.893ms         0.03%     458.893ms     112.750us          4070  
+triton_red_fused__to_copy_add_native_dropout_native_...         0.01%     127.404ms         0.01%     146.614ms      36.023us     457.810ms         0.03%     457.810ms     112.484us          4070  
+triton_poi_fused__scaled_dot_product_flash_attention...         0.02%     244.076ms         0.02%     265.971ms      13.809us     416.174ms         0.03%     416.209ms      21.610us         19260  
+     triton_red_fused_add_native_layer_norm_backward_30         0.01%      91.378ms         0.01%     105.874ms      26.013us     415.213ms         0.03%     415.213ms     102.018us          4070  
+                                triton_poi_fused_view_9         0.02%     196.236ms         0.02%     211.851ms      13.013us     410.533ms         0.03%     411.280ms      25.263us         16280  
+                                         aten::_to_copy         0.04%     466.375ms         0.25%        3.003s      73.237us       0.000us         0.00%     399.792ms       9.750us         41003  
+                                               aten::to         0.02%     245.483ms         0.27%        3.254s      59.586us       0.000us         0.00%     399.733ms       7.319us         54613  
+                                 triton_red_fused_sum_7         0.05%     555.866ms         0.05%     612.649ms      15.053us     378.067ms         0.03%     378.067ms       9.289us         40700  
+          ampere_fp16_s1688gemm_fp16_256x64_ldg8_f2f_tn         0.00%       0.000us         0.00%       0.000us       0.000us     374.546ms         0.03%     374.546ms      45.990us          8144  
+triton_red_fused_add_native_dropout_native_layer_nor...         0.01%     111.415ms         0.01%     127.578ms      31.346us     370.065ms         0.03%     370.065ms      90.925us          4070  
+void cutlass::Kernel2<cutlass_80_wmma_tensorop_f16_s...         0.00%       0.000us         0.00%       0.000us       0.000us     368.431ms         0.03%     368.431ms      38.275us          9626  
+triton_red_fused__to_copy_add_native_dropout_backwar...         0.01%     127.686ms         0.01%     151.329ms      37.182us     365.949ms         0.03%     365.949ms      89.914us          4070  
+                           triton_poi_fused__to_copy_39         0.01%      86.016ms         0.01%      86.122ms      21.160us     363.563ms         0.03%     363.563ms      89.327us          4070  
+                                            aten::addmm         0.08%     979.255ms         0.12%        1.401s      80.511us     346.460ms         0.03%     346.828ms      19.926us         17406  
+                         Memcpy HtoD (Pinned -> Device)         0.00%       0.000us         0.00%       0.000us       0.000us     343.874ms         0.03%     343.874ms      38.659us          8895  
+                                triton_red_fused_sum_15         0.01%     164.038ms         0.02%     190.665ms      23.423us     324.813ms         0.02%     324.813ms      39.903us          8140  
+     triton_red_fused_add_native_layer_norm_backward_31         0.01%      72.685ms         0.01%      83.405ms      20.493us     302.541ms         0.02%     302.541ms      74.334us          4070  
+     triton_per_fused__to_copy_add_native_layer_norm_15         0.01%     101.902ms         0.01%     115.580ms      24.004us     293.825ms         0.02%     293.825ms      61.023us          4815  
+              triton_per_fused_add_native_layer_norm_21         0.01%     110.515ms         0.01%     113.536ms      23.580us     292.444ms         0.02%     292.444ms      60.736us          4815  
+triton_poi_fused__scaled_dot_product_flash_attention...         0.02%     205.184ms         0.02%     225.497ms      15.611us     284.869ms         0.02%     284.870ms      19.721us         14445  
+                       triton_poi_fused__to_copy_add_22         0.01%     120.848ms         0.01%     130.440ms      16.025us     261.100ms         0.02%     261.100ms      32.076us          8140  
+triton_red_fused__to_copy_add_native_layer_norm_back...         0.01%      72.347ms         0.01%      82.447ms      20.257us     256.174ms         0.02%     256.174ms      62.942us          4070  
+                              triton_poi_fused_clone_17         0.01%     123.644ms         0.01%     140.125ms      17.204us     256.152ms         0.02%     256.152ms      31.449us          8145  
+triton_red_fused__to_copy_add_native_layer_norm_back...         0.12%        1.446s         0.13%        1.577s      12.913us     253.228ms         0.02%     253.228ms       2.074us        122100  
+triton_red_fused_add_native_dropout_native_layer_nor...         0.01%     102.049ms         0.01%     116.310ms      28.577us     249.238ms         0.02%     249.238ms      61.238us          4070  
+triton_poi_fused__scaled_dot_product_flash_attention...         0.01%     124.895ms         0.01%     133.163ms      13.828us     235.559ms         0.02%     235.559ms      24.461us          9630  
+                                aten::_foreach_addcdiv_         0.04%     433.703ms         0.04%     523.254ms     128.500us     230.791ms         0.02%     233.512ms      57.346us          4072  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 1192.228s
+Self CUDA time total: 1337.582s

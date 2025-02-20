@@ -3,6 +3,9 @@ from torch.utils.data import DataLoader
 from MaskedAutoEncoder import MaskedAutoEncoder
 from tqdm import tqdm
 import os
+os.environ["PYTORCH_FX_DISABLE_SYMBOLIC_SHAPES"] = "1"
+import warnings
+warnings.filterwarnings("ignore", message=".*not in var_ranges.*")
 import torch
 print(torch.__version__)  # PyTorch version
 print(torch.version.cuda)  # CUDA version
@@ -10,9 +13,10 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.optim as optim
-#torch.set_float32_matmul_precision('high')
+torch.set_float32_matmul_precision('high')
 from torch import compile
 from torch.amp import GradScaler
+from torch.profiler import profile, record_function, ProfilerActivity
 
 
 #@torch.compile
@@ -78,32 +82,32 @@ def get_output_imgs(model, data_loader, save_file):
         plt.savefig(save_file)
         return save_file
 
-def run_experiment(hidden_dim = 128, batch_size = 32, set_size = 1, img_shape = (32, 32), n_epochs = 2):
+def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = (32, 32), n_epochs = 5, mask_percentage=0.75):
     #save directories
     os.makedirs("./outputs/", exist_ok=True)
-    out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{img_shape=}_{n_epochs=}"
+    out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{img_shape=}_{n_epochs=}_{mask_percentage=}"
     os.makedirs(out_dir, exist_ok=True)
     img_dir = f"{out_dir}/imgs"
     os.makedirs(img_dir, exist_ok=True)
 
     #Datasets and data loaders
-    train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, img_shape=img_shape)
+    train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, img_shape=img_shape, train=True)
     test_datasets = []
     val_datasets = []
     #for suffix in ["_easy.json", "_medium.json", "_hard.json", ".json"]:
     #for suffix in ["_hard.json", ".json"]:
     for suffix in [".json"]:
-        test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape)))
-        val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape)))
+        test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
+        val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
 
     loader_workers = 16
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
-    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
+    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
     val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
 
     #create model, optimizer, and loss function
     seq_length = train_dataset.image_shape[0] * train_dataset.image_shape[1]
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length)
+    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length, mask_ratio=mask_percentage)
     model = compile(model)  # Wrap the model with torch.compile
 
     # Move model to CUDA if available
@@ -123,7 +127,7 @@ def run_experiment(hidden_dim = 128, batch_size = 32, set_size = 1, img_shape = 
     #training loop
     print(f"training on {model.device}")
     for epoch in range(n_epochs):
-        print(f"\n\nEpoch {epoch}:\n")
+        print(f"\n\nEpoch {epoch+1}/{n_epochs}:")
         #do a training epoch
         train_loss = epoch_func(model, train_loader, mse_loss, name="Training", optimizer=optimizer, scaler=scaler)
         training_loss_history.append(train_loss)
@@ -143,16 +147,20 @@ def run_experiment(hidden_dim = 128, batch_size = 32, set_size = 1, img_shape = 
             print(f"New best model saved with validation loss: {best_val_loss}")
 
         #save the output images for the test set
-        output_imgs = get_output_imgs(model, test_loaders[-1][1], f"{img_dir}/epoch_{epoch}.png")
+        epoch_dir = f"{img_dir}/epoch_{epoch}"
+        os.makedirs(epoch_dir, exist_ok=True)
+        output_imgs = get_output_imgs(model, train_loader, f"{epoch_dir}/train.png")
+        output_imgs = get_output_imgs(model, val_loaders[-1][1], f"{epoch_dir}/val.png")
+        output_imgs = get_output_imgs(model, test_loaders[-1][1], f"{epoch_dir}/test.png")
         print()
     
     model.load_state_dict(best_model)
-    test_losses = [(name, epoch_func(model, test_loader, mse_loss, name = suffix)) for name, test_loader in test_loaders]
+    test_losses = [(name, epoch_func(model, test_loader, mse_loss, name = name)) for name, test_loader in test_loaders]
     total_test_loss = [loss for name, loss in test_losses if name == "test.json"][0]
     print(f"Test Loss: {total_test_loss}")
     with open(f"{out_dir}/metrics.txt", "w") as f:
-        f.write("Test loss: {total_test_loss}\n")
-        f.write("Best Model Validation Loss: {best_val_loss}\n")
+        f.write(f"Test loss: {total_test_loss}\n")
+        f.write(f"Best Model Validation Loss: {best_val_loss}\n")
         
         f.write("Test Losses:\n")
         for name, loss in test_losses:
@@ -184,21 +192,26 @@ def run_experiment(hidden_dim = 128, batch_size = 32, set_size = 1, img_shape = 
     print(f"Results saved to {out_dir}")
     print("Done")
 
-
+"""
 if __name__ == "__main__":
     run_experiment()
 
 """
+    
 if __name__ == "__main__":
+    os.makedirs("./profile/", exist_ok=True)
     with profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        record_shapes=True,
-        profile_memory=True,
-        with_stack=True
+        record_shapes=False,       # Disable shape recording if not essential
+        profile_memory=False,      # Disable memory profiling to reduce overhead
+        with_stack=False           # Disable stack tracing to lower data collection cost
     ) as prof:
         with record_function("run_experiment"):
             run_experiment()
-
-    # Print profiling results
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
-"""
+    #Export the complete trace to a JSON file for viewing in Chrome Trace Viewer
+    prof.export_chrome_trace("./profile/profile_trace.json")
+    
+    # Optionally, write a summary table to a text file
+    summary = prof.key_averages().table(sort_by="cuda_time_total")
+    with open("./profile/profile_summary.txt", "w") as f:
+        f.write(summary)

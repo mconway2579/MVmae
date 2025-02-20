@@ -2,4 +2,5 @@ MessyTableData/
 messytable.zip
 MessyTable.zip
 __pycache__/
-outputs/
+*.pth
+*_trace.json

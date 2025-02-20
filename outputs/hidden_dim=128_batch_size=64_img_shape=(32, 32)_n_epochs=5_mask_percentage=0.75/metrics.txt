@@ -1,0 +1,29 @@
+Test loss: 7.033748734169116e-05
+Best Model Validation Loss: 7.15843453747148e-05
+Test Losses:
+   test.json: 7.033748734169116e-05
+Epoch 0:
+   Train Loss: 0.0011210341561338753
+   Validation Losses:
+      val.json: 0.0004348620120503294
+
+Epoch 1:
+   Train Loss: 0.00024850942195141137
+   Validation Losses:
+      val.json: 0.00015357565406674747
+
+Epoch 2:
+   Train Loss: 0.0001339374428728062
+   Validation Losses:
+      val.json: 0.00012086019259487746
+
+Epoch 3:
+   Train Loss: 0.00010759522788020521
+   Validation Losses:
+      val.json: 9.386748207909905e-05
+
+Epoch 4:
+   Train Loss: 9.441587573135188e-05
+   Validation Losses:
+      val.json: 7.15843453747148e-05
+

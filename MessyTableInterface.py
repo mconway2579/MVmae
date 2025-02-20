@@ -13,13 +13,23 @@ import random
 import numpy as np
 
 class MessyTableDataset(Dataset):
-    def __init__(self, file_path, set_size=2, min_pixel_area=2000, img_shape = (224, 224)):
+    def __init__(self, file_path, set_size=2, min_pixel_area=2000, img_shape = (224, 224), train=False):
         self.image_shape = img_shape
-        self.transform = transforms.Compose([
-            transforms.Lambda(lambda img: Image.fromarray(img)),
-            transforms.Resize(self.image_shape),
-            transforms.ToTensor()
-        ])
+        if train:
+            self.transform = transforms.Compose([
+                transforms.Lambda(lambda img: Image.fromarray(img)),
+                transforms.Resize(self.image_shape),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(180),
+                transforms.ToTensor()
+            ])
+        else:
+            self.transform = transforms.Compose([
+                transforms.Lambda(lambda img: Image.fromarray(img)),
+                transforms.Resize(self.image_shape),
+                transforms.ToTensor()
+            ])
         self.min_pixel_area = min_pixel_area
         self.set_size = set_size
         #open data file

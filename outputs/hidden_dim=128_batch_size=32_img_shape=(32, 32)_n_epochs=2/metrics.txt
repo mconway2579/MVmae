@@ -1,0 +1,14 @@
+Test loss: {total_test_loss}
+Best Model Validation Loss: {best_val_loss}
+Test Losses:
+   test.json: 9.369998195173162e-05
+Epoch 0:
+   Train Loss: 0.0010979686668542577
+   Validation Losses:
+      val.json: 0.0001721581136397021
+
+Epoch 1:
+   Train Loss: 0.0001292493087385348
+   Validation Losses:
+      val.json: 9.581371062657053e-05
+

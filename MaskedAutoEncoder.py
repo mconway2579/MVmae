@@ -43,10 +43,12 @@ class MaskedAutoEncoder(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, x):
+    def forward(self, x, mask_ratio=None):
+        if mask_ratio is None:
+            mask_ratio = self.mask_ratio
         #print(f"\n\nin forward")
         # Create one mask value per pixel (broadcasted over channels)
-        mask = (torch.rand(x.size(0), 1, x.size(2), x.size(3), device=self.device) > self.mask_ratio).float()
+        mask = (torch.rand(x.size(0), 1, x.size(2), x.size(3), device=self.device) > mask_ratio).float()
         x = x * mask
         #print(f"original{x.shape=}")
         x = x.permute(0,2,3,1)

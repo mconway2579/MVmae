@@ -1,12 +1,19 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 import math
 
 class MaskedAutoEncoder(nn.Module):
-    def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, max_seq_length=50176):
+    def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, max_seq_length=10000, patch_size=32):
         super(MaskedAutoEncoder, self).__init__()
         self.mask_ratio = mask_ratio
         self.max_seq_length = max_seq_length+1 # set maximum sequence length as needed
+
+        self.patch_size = patch_size
+        self.pixels_per_patch = patch_size * patch_size
+
+
 
         # Set device
         if torch.cuda.is_available():
@@ -17,7 +24,7 @@ class MaskedAutoEncoder(nn.Module):
             self.device = torch.device('cpu')
 
         # Project input to hidden dimension.
-        self.embedding = nn.Linear(3, hidden_dim)
+        self.embedding = nn.Linear(self.pixels_per_patch, hidden_dim)
 
         #initialize sinisoidal positional encoding
         pe = torch.zeros(self.max_seq_length, hidden_dim)
@@ -46,80 +53,98 @@ class MaskedAutoEncoder(nn.Module):
     def forward(self, x, mask_ratio=None):
         if mask_ratio is None:
             mask_ratio = self.mask_ratio
-        #print(f"\n\nin forward")
+        print(f"\n\nin forward")
+
+        print(f"original{x.shape=}")
+        B, C, H, W = x.shape
+        print(f"{B=}, {C=}, {H=}, {W=}")
+        num_patches = (H // self.patch_size) * (W // self.patch_size)
+
+        print(f"{num_patches=}, {self.pixels_per_patch=}")
         # Create one mask value per pixel (broadcasted over channels)
-        mask = (torch.rand(x.size(0), 1, x.size(2), x.size(3), device=self.device) > mask_ratio).float()
-        #print(f"{mask.shape=}")
-        x = x * mask
-        #print(f"original{x.shape=}")
-        x = x.permute(0,2,3,1)
-        #print(f"{masked_x.shape=}")
-
-        #print(f"permuted {x.shape=}")
-        dims = x.shape
-        x = x.reshape(dims[0], dims[1]*dims[2], dims[3])
-        #print(f"flattened {x.shape=}")
-
-        # Create a random binary mask based on the mask_ratio.
         
 
-        x_embedded = self.embedding(x)
-        #print(f"after embedded {x_embedded.shape=}")
-        x_embedded = x_embedded + self.positional_encoding[:x_embedded.size(1), :].unsqueeze(0)
-        #print(f"after PE {x_embedded.shape=}")
+
+        x = F.unfold(x, kernel_size=self.patch_size, stride=self.patch_size)
+        print(f"after unfold {x.shape=}")
+        #num_patches = x.shape[-1]
+        x = x.transpose(2,1)
+        print(f"after transpose {x.shape=}")
+
+        #mask = (torch.rand(x.size(0), 1, x.size(2), device=self.device) > mask_ratio).float()
+        #print(f"{mask.shape=}")
+        #x = x * mask
+        #print(f"masked x = {x.shape}")
+
+
+        
+
+        #x = self.embedding(x)
+        #print(f"after embedded {x.shape=}")
+        #x += self.positional_encoding[:x.size(1), :].unsqueeze(0)
+        #print(f"after PE {x.shape=}")
 
         # Add class token
-        batch_size = x_embedded.size(0)
+        #batch_size = x.size(0)
         #print(f"{batch_size=}")
-        class_token = self.class_token.unsqueeze(0).unsqueeze(1).expand(batch_size, 1, -1)
+        #class_token = self.class_token.unsqueeze(0).unsqueeze(1).expand(batch_size, 1, -1)
         #print(f"{class_token.shape=}")
 
-        x_embedded = torch.cat((class_token, x_embedded), dim=1)
-        #print(f"after CLS token {x_embedded.shape=}")
+        #x = torch.cat((class_token, x), dim=1)
+        #print(f"after CLS token {x.shape=}")
 
 
         # Apply the transformer encoder.
-        memory = self.transformer_encoder(x_embedded) 
+        #memory = self.transformer_encoder(x) 
 
         # Apply the transformer decoder.
-        decoded = self.transformer_decoder(x_embedded, memory)
+        #decoded = self.transformer_decoder(x, memory)
 
         # Extract the class token from the decoder output
-        class_token_output = decoded[:, 0, :]
+        #class_token_output = decoded[:, 0, :]
         #print(f"{class_token_output.shape=}")
         # Remove the sequence dimension and class token.
 
         # Project back to input dimension.
-        reconstructed = self.output_layer(decoded[:, 1:, :])
+        #reconstructed = self.output_layer(decoded[:, 1:, :])
         #print(f"{reconstructed.shape=}")
 
-        reconstructed = reconstructed.reshape(dims[0], dims[1], dims[2], dims[3])
-        reconstructed = reconstructed.permute(0,3,1,2)
-        return reconstructed, mask, class_token_output
-
+        #reconstructed = reconstructed.reshape(dims[0], dims[1], dims[2], dims[3])
+        #reconstructed = reconstructed.permute(0,3,1,2)
+        #return reconstructed, mask, class_token_output
+        x = x.transpose(2,1)
+        print(f"after transpose {x.shape=}")
+        x = F.fold(x, (H, W), kernel_size=self.patch_size, stride=self.patch_size)
+        return x, None, None
 if __name__ == "__main__":
     from MessyTableInterface import MessyTableDataset, display_batch
     from torch.utils.data import DataLoader
     import os
+    import matplotlib.pyplot as plt
     hidden_dim = 128
     batch_size = 4
+    patch_size = 8
      
     file_path = './MessyTableData/labels/train.json'
 
-    dataset = MessyTableDataset(file_path, set_size=1, img_shape=(32,32))
+    dataset = MessyTableDataset(file_path, set_size=1, img_shape=(256,256))
     seq_length = dataset.image_shape[0] * dataset.image_shape[1]
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
+    display_batch(data_loader)
     data = next(iter(data_loader))
     _, _, object_imgs_batch, _, _ = data
     print(f"{len(object_imgs_batch)=}")
     print(f"{object_imgs_batch[0].shape=}")
     object_imgs_batch = object_imgs_batch[0]
 
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length)
+    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length, patch_size=patch_size)
+    object_imgs_batch = object_imgs_batch.to(model.device)
     
     output, mask, emb = model(object_imgs_batch)
 
     print("Reconstructed Output:", output.shape)
-    print("Mask:", mask.shape)
-    print(f"{emb.shape=}")
+    display_img = torch.cat((object_imgs_batch, output), dim=1)
+    plt.imshow(display_img)
+    plt.show()
+    #print("Mask:", mask.shape)
+    #print(f"{emb.shape=}")

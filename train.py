@@ -1,4 +1,4 @@
-from MessyTableInterface import MessyTableDataset, display_batch
+from MessyTableInterface import MessyTableDataset, display_batch, MAX_IMG_SIZE, custom_collate
 from torch.utils.data import DataLoader
 from MaskedAutoEncoder import MaskedAutoEncoder
 from tqdm import tqdm
@@ -27,8 +27,9 @@ def epoch_func(model, loader, loss_fn, name, optimizer=None, scaler=None):
         model.train()
     total_loss = 0
     n = 0
-    for data in tqdm(loader, desc=name):
-        object_imgs_batch= data[2][0].to(model.device, non_blocking=True)
+    for object_imgs_batch, label_batch in tqdm(loader, desc=name):
+        object_imgs_batch= object_imgs_batch[:,0,:,:,:].to(model.device, non_blocking=True)
+        print(f"{object_imgs_batch.shape=}")
         n += len(object_imgs_batch)
         output = None
         mask = None
@@ -68,9 +69,8 @@ def get_output_imgs(model, data_loader, save_file):
         fig, axes = plt.subplots(fig_side_length, fig_side_length)
         axes = axes.flatten()
 
-        output, mask, emb = model(object_imgs_batch)
-        for i, (img, pred, m) in enumerate(zip(object_imgs_batch, output, mask)):
-            masked_img = img * m
+        output, masked_imgs, emb = model(object_imgs_batch)
+        for i, (img, pred, masked_img) in enumerate(zip(object_imgs_batch, output, masked_imgs)):
             masked_img = masked_img.permute(1,2,0)
             img = img.permute(1,2,0)
             pred = pred.permute(1,2,0)
@@ -82,33 +82,33 @@ def get_output_imgs(model, data_loader, save_file):
         plt.savefig(save_file)
         return save_file
 
-def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = (64, 64), n_epochs = 5, mask_percentage=0.75, loader_workers = 30):
+def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, patch_size=128, n_epochs = 5, mask_percentage=0.75, loader_workers = 4):
     #save directories
     os.makedirs("./outputs/", exist_ok=True)
-    out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{img_shape=}_{n_epochs=}_{mask_percentage=}"
+    out_dir = f"./outputs/{hidden_dim=}_{batch_size=}_{patch_size=}_{n_epochs=}_{mask_percentage=}"
     os.makedirs(out_dir, exist_ok=True)
     img_dir = f"{out_dir}/imgs"
     os.makedirs(img_dir, exist_ok=True)
 
     #Datasets and data loaders
-    train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, img_shape=img_shape, train=True)
+    train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, train=True)
     test_datasets = []
     val_datasets = []
     #
     #for suffix in ["_hard.json", ".json"]:
     #for suffix in [".json"]:
     for suffix in ["_easy.json", "_medium.json", "_hard.json", ".json"]:
-        test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
-        val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, img_shape=img_shape, train=False)))
+        test_datasets.append((f"test{suffix}", MessyTableDataset(f"./MessyTableData/labels/test{suffix}", set_size=set_size, train=False)))
+        val_datasets.append((f"val{suffix}", MessyTableDataset(f"./MessyTableData/labels/val{suffix}", set_size=set_size, train=False)))
 
     
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
-    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True)) for name, dataset in test_datasets]
-    val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True, collate_fn=custom_collate)
+    test_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True, collate_fn=custom_collate)) for name, dataset in test_datasets]
+    val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True, collate_fn=custom_collate)) for name, dataset in val_datasets]
 
     #create model, optimizer, and loss function
-    seq_length = train_dataset.image_shape[0] * train_dataset.image_shape[1]
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length, mask_ratio=mask_percentage)
+    max_seq_length = MAX_IMG_SIZE ** 2
+    model = MaskedAutoEncoder(hidden_dim, max_seq_length=max_seq_length, mask_ratio=mask_percentage)
     model = compile(model)  # Wrap the model with torch.compile
 
     # Move model to CUDA if available
@@ -196,12 +196,12 @@ def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = 
 
 if __name__ == "__main__":
     experiment_configs = [
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0},
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.25},
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.5},
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.75},
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.9},
-        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 1},
+        #{"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 0},
+        #{"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 0.25},
+        #{"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 0.5},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 0.75},
+        #{"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 0.9},
+        #{"hidden_dim": 128, "batch_size": 32, "set_size": 1, "n_epochs": 5, "mask_percentage": 1},
     ]
 
     for config in experiment_configs:

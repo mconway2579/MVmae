@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import math
+from MessyTableInterface import MAX_IMG_SIZE
 
 class MaskedAutoEncoder(nn.Module):
     def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, max_seq_length=10000, patch_size=32):
@@ -51,44 +52,44 @@ class MaskedAutoEncoder(nn.Module):
     def forward(self, x, mask_ratio=None):
         if mask_ratio is None:
             mask_ratio = self.mask_ratio
-        print(f"\n\nin forward")
+        #print(f"\n\nin forward")
 
-        print(f"original{x.shape=}")
+        #print(f"original{x.shape=}")
         B, C, H, W = x.shape
-        print(f"{B=}, {C=}, {H=}, {W=}")
+        #print(f"{B=}, {C=}, {H=}, {W=}")
         num_patches = (H // self.patch_size) * (W // self.patch_size)
 
-        print(f"{num_patches=}, {self.pixels_per_patch=}")
+        #print(f"{num_patches=}, {self.pixels_per_patch=}")
         # Create one mask value per pixel (broadcasted over channels)
         
 
 
         x = F.unfold(x, kernel_size=self.patch_size, stride=self.patch_size)
-        print(f"after unfold {x.shape=}")
+        #print(f"after unfold {x.shape=}")
         #num_patches = x.shape[-1]
         x = x.transpose(2,1)
-        print(f"after transpose {x.shape=}")
+        #print(f"after transpose {x.shape=}")
 
         mask = (torch.rand(x.size(0), x.size(1),1, device=self.device) > mask_ratio).float()
-        print(f"{mask.shape=}")
+        #print(f"{mask.shape=}")
         x = x * mask
         masked_seq = x
-        print(f"masked x = {x.shape}")
+        #print(f"masked x = {x.shape}")
 
-        print(f"before embedded {x.shape=}")
+        #print(f"before embedded {x.shape=}")
         x = self.embedding(x)
-        print(f"after embedded {x.shape=}")
+        #print(f"after embedded {x.shape=}")
         x += self.positional_encoding[:x.size(1), :].unsqueeze(0)
-        print(f"after PE {x.shape=}")
+        #print(f"after PE {x.shape=}")
 
         # Add class token
         batch_size = x.size(0)
-        print(f"{batch_size=}")
+        #print(f"{batch_size=}")
         class_token = self.class_token.unsqueeze(0).unsqueeze(1).expand(batch_size, 1, -1)
-        print(f"{class_token.shape=}")
+        #print(f"{class_token.shape=}")
 
         x = torch.cat((class_token, x), dim=1)
-        print(f"after CLS token {x.shape=}")
+        #print(f"after CLS token {x.shape=}")
 
 
         # Apply the transformer encoder.
@@ -108,7 +109,7 @@ class MaskedAutoEncoder(nn.Module):
 
         
         reconstructed_sequence = reconstructed_sequence.transpose(2,1)
-        print(f"after transpose {x.shape=}")
+        #print(f"after transpose {x.shape=}")
         reconstructed_sequence = F.fold(reconstructed_sequence, (H, W), kernel_size=self.patch_size, stride=self.patch_size)
 
         masked_img = masked_seq.transpose(2,1)
@@ -116,27 +117,25 @@ class MaskedAutoEncoder(nn.Module):
 
         return reconstructed_sequence, masked_img, class_token_output
 if __name__ == "__main__":
-    from MessyTableInterface import MessyTableDataset, display_batch
+    from MessyTableInterface import MessyTableDataset, display_batch, custom_collate
     from torch.utils.data import DataLoader
     import os
     import matplotlib.pyplot as plt
     hidden_dim = 256
     batch_size = 4
-    patch_size = 8
+    patch_size = 16
      
     file_path = './MessyTableData/labels/train.json'
 
-    dataset = MessyTableDataset(file_path, set_size=1, img_shape=(256,256))
-    seq_length = dataset.image_shape[0] * dataset.image_shape[1]
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataset = MessyTableDataset(file_path, set_size=1, train=True)
+    max_seq_length = MAX_IMG_SIZE**2
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
     #display_batch(data_loader)
-    data = next(iter(data_loader))
-    _, _, object_imgs_batch, _, _ = data
-    print(f"{len(object_imgs_batch)=}")
-    print(f"{object_imgs_batch[0].shape=}")
-    object_imgs_batch = object_imgs_batch[0]
+    object_imgs_batch, instance_scene_batch = next(iter(data_loader))
+    object_imgs_batch = object_imgs_batch[:, 0, :, :, :]
+    print(f"{object_imgs_batch.shape=}, {len(instance_scene_batch)=}")
 
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=seq_length, patch_size=patch_size)
+    model = MaskedAutoEncoder(hidden_dim, max_seq_length=max_seq_length, patch_size=patch_size)
     object_imgs_batch = object_imgs_batch.to(model.device)
     
     output, masked_imgs, emb = model(object_imgs_batch)

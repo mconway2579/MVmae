@@ -196,12 +196,12 @@ def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 1, img_shape = 
 
 if __name__ == "__main__":
     experiment_configs = [
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0},
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.25},
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.5},
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.75},
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.9},
-        {"hidden_dim": 128, "batch_size": 64, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 1},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.25},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.5},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.75},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 0.9},
+        {"hidden_dim": 128, "batch_size": 32, "set_size": 1, "img_shape": (64, 64), "n_epochs": 5, "mask_percentage": 1},
     ]
 
     for config in experiment_configs:

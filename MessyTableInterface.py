@@ -11,14 +11,17 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import random
 import numpy as np
+import gc
 
 
-MAX_IMG_SIZE = 2048
+
 class MessyTableDataset(Dataset):
     def __init__(self, file_path, set_size=2, min_pixel_area=2000, train=False):
+        self.img_size = (1024, 1024)
         if train:
             self.transform = transforms.Compose([
                 transforms.Lambda(lambda img: Image.fromarray(img)),
+                transforms.Resize(self.img_size),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
                 transforms.RandomRotation(180),
@@ -27,6 +30,7 @@ class MessyTableDataset(Dataset):
         else:
             self.transform = transforms.Compose([
                 transforms.Lambda(lambda img: Image.fromarray(img)),
+                transforms.Resize(self.img_size),
                 transforms.ToTensor()
             ])
         self.min_pixel_area = min_pixel_area
@@ -117,8 +121,9 @@ class MessyTableDataset(Dataset):
         
         object_imgs = []
         
-        instance_scene = [f"instance:{row['instance']}_Scene:{row['scene']}" for camera in cameras_to_use]
-
+        #lenght 22 normally but sometimes 21
+        instance_scene = [f"{row['instance']}_{row['scene']}" for camera in cameras_to_use]
+        instance_scene = [s.ljust(22) for s in instance_scene]
         for camera in cameras_to_use:
             
             image_path = os.path.join("./MessyTableData/images", row[f'camera_{camera}_file'])
@@ -134,31 +139,27 @@ class MessyTableDataset(Dataset):
 
             transformed_obj_image = self.transform(cropped_image)
             object_imgs.append(transformed_obj_image)
-
-        return object_imgs, instance_scene
-
-def custom_collate(batch):
-    img_shapes = [256,512,1024,MAX_IMG_SIZE]
-    sidelength = random.choice(img_shapes)
-    resizer = transforms.Resize((sidelength, sidelength))
-    object_imgs_batch= [item[0] for item in batch]
-    object_imgs_batch = torch.stack([torch.stack([resizer(img) for img in object_imgs_set], dim=0) for object_imgs_set in object_imgs_batch], dim=0)
-    instance_scene_batch = [item[1] for item in batch]
-    return object_imgs_batch, instance_scene_batch
+        object_imgs = torch.stack(object_imgs)
+        #instance_scene = torch.tensor(instance_scene, dtype=torch.string)
+        tokenized_scenes = [torch.tensor([ord(char) for char in s]) for s in instance_scene]
+        tokenized_scenes = torch.stack(tokenized_scenes)
+        #print(f"{object_imgs.shape=}, {tokenized_scenes.shape=}")
+        return object_imgs, tokenized_scenes
 
 
 def display_batch(data_loader):
     fig, axes = plt.subplots(ncols = data_loader.batch_size, nrows = data_loader.dataset.set_size)
     object_imgs_batch, instance_scene_batch = next(iter(data_loader))
-    print(f"{object_imgs_batch.shape=}, {len(instance_scene_batch)=}")
+    print(f"{object_imgs_batch.shape=}, {instance_scene_batch.shape=}")
 
     for i, (object_imgs_set, instance_scene_set) in enumerate(zip(object_imgs_batch, instance_scene_batch)):
-        #print(f"{len(object_imgs_set)=}, {len(instance_scene_set)=}")
+        #print(f"{object_imgs_set.shape=}, {len(instance_scene_set)=}")
 
         for j, (object_img, instance_scene) in enumerate(zip(object_imgs_set, instance_scene_set)):
             #print(f"{object_img.shape=}")
             axes[j,i].imshow(object_img.permute(1,2,0))
-            axes[j,i].set_title(f"{instance_scene}\n {object_img.shape}", fontsize=5)
+            label = ''.join([chr(char) for char in instance_scene])
+            axes[j,i].set_title(f"{label}\n {object_img.shape}", fontsize=5)
             #print(dir(axes[i,j]))
             axes[j,i].axis('off')
     
@@ -178,9 +179,9 @@ if __name__ == "__main__":
             file_path = os.path.join(label_dir, label_file)
             dataset = MessyTableDataset(file_path, set_size=set_size, train=True)
             #dataset.debug()
-            data_loader = DataLoader(dataset, batch_size=bs, shuffle=True, num_workers=16, collate_fn=custom_collate)
-            for _ in (tqdm(data_loader)):
-                pass
+            data_loader = DataLoader(dataset, batch_size=bs, shuffle=True, num_workers=16)
             display_batch(data_loader)
+            for _ in (tqdm(data_loader)):
+               pass
             #break
-    plt.show()
+    #plt.show()

@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import math
-from MessyTableInterface import MAX_IMG_SIZE
 
 class MaskedAutoEncoder(nn.Module):
     def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, max_seq_length=10000, patch_size=32):
@@ -117,7 +116,7 @@ class MaskedAutoEncoder(nn.Module):
 
         return reconstructed_sequence, masked_img, class_token_output
 if __name__ == "__main__":
-    from MessyTableInterface import MessyTableDataset, display_batch, custom_collate
+    from MessyTableInterface import MessyTableDataset, display_batch
     from torch.utils.data import DataLoader
     import os
     import matplotlib.pyplot as plt
@@ -128,8 +127,8 @@ if __name__ == "__main__":
     file_path = './MessyTableData/labels/train.json'
 
     dataset = MessyTableDataset(file_path, set_size=1, train=True)
-    max_seq_length = MAX_IMG_SIZE**2
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
+    max_seq_length = 1024**2
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     #display_batch(data_loader)
     object_imgs_batch, instance_scene_batch = next(iter(data_loader))
     object_imgs_batch = object_imgs_batch[:, 0, :, :, :]

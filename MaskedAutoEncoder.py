@@ -3,12 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import math
-
+from config import IMG_SHAPE
 class MaskedAutoEncoder(nn.Module):
-    def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, max_seq_length=10000, patch_size=32):
+    def __init__(self, hidden_dim, num_layers=2, nhead=4, mask_ratio=0.5, patch_size=32):
         super(MaskedAutoEncoder, self).__init__()
         self.mask_ratio = mask_ratio
-        self.max_seq_length = max_seq_length+1 # set maximum sequence length as needed
+        self.max_seq_length = (IMG_SHAPE[0] * IMG_SHAPE[1]) + 1 # set maximum sequence length as needed
 
         self.patch_size = patch_size
         self.pixels_per_patch = patch_size * patch_size *3
@@ -127,14 +127,14 @@ if __name__ == "__main__":
     file_path = './MessyTableData/labels/train.json'
 
     dataset = MessyTableDataset(file_path, set_size=1, train=True)
-    max_seq_length = 1024**2
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     #display_batch(data_loader)
     object_imgs_batch, instance_scene_batch = next(iter(data_loader))
-    object_imgs_batch = object_imgs_batch[:, 0, :, :, :]
+    B, S, C, H, W = object_imgs_batch.shape
+    object_imgs_batch= object_imgs_batch.reshape(-1, C, H, W)
     print(f"{object_imgs_batch.shape=}, {len(instance_scene_batch)=}")
 
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=max_seq_length, patch_size=patch_size)
+    model = MaskedAutoEncoder(hidden_dim, patch_size=patch_size)
     object_imgs_batch = object_imgs_batch.to(model.device)
     
     output, masked_imgs, emb = model(object_imgs_batch)

@@ -12,12 +12,12 @@ from torchvision import transforms, utils
 import random
 import numpy as np
 import gc
-
+from config import IMG_SHAPE
 
 
 class MessyTableDataset(Dataset):
     def __init__(self, file_path, set_size=2, min_pixel_area=2000, train=False):
-        self.img_size = (1024, 1024)
+        self.img_size = IMG_SHAPE
         if train:
             self.transform = transforms.Compose([
                 transforms.Lambda(lambda img: Image.fromarray(img)),

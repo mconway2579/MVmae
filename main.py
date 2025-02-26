@@ -1,7 +1,6 @@
-from MessyTableInterface import MessyTableDataset, display_batch
+from MessyTableInterface import MessyTableDataset
 from torch.utils.data import DataLoader
 from MaskedAutoEncoder import MaskedAutoEncoder
-from tqdm import tqdm
 import os
 os.environ["PYTORCH_FX_DISABLE_SYMBOLIC_SHAPES"] = "1"
 import warnings
@@ -9,20 +8,14 @@ warnings.filterwarnings("ignore", message=".*not in var_ranges.*")
 import torch
 print(f"{torch.__version__=}")  # PyTorch version
 print(f"{torch.version.cuda=}")  # CUDA version
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import numpy as np
-import torch.optim as optim
 torch.set_float32_matmul_precision('high')
-from torch import compile
-from torch.amp import GradScaler
 from torch.profiler import profile, record_function, ProfilerActivity
+from pre_training import pretrain
+from association_training import train_association
 
 
 
-
-def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 3, patch_size=128, n_pretrain_epochs = 5, n_association_epochs=5, mask_percentage=0.75, loader_workers = 16):
+def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 3, patch_size=32, n_pretrain_epochs = 5, n_association_epochs=5, mask_percentage=0.75, loader_workers = 16):
     #save directories
     os.makedirs("./outputs/", exist_ok=True)
 
@@ -59,8 +52,7 @@ def run_experiment(hidden_dim = 128, batch_size = 64, set_size = 3, patch_size=1
     val_loaders = [(name, DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)) for name, dataset in val_datasets]
 
     #create model, optimizer, and loss function
-    max_seq_length = 1024 ** 2
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=max_seq_length, mask_ratio=mask_percentage)
+    model = MaskedAutoEncoder(hidden_dim, mask_ratio=mask_percentage, patch_size=patch_size)
     #model = compile(model)  # Wrap the model with torch.compile
 
     # Move model to CUDA if available

@@ -1,4 +1,4 @@
-from MessyTableInterface import MessyTableDataset, display_batch
+from MessyTableInterface import MessyTableDataset
 from torch.utils.data import DataLoader
 from MaskedAutoEncoder import MaskedAutoEncoder
 from tqdm import tqdm
@@ -9,15 +9,12 @@ warnings.filterwarnings("ignore", message=".*not in var_ranges.*")
 import torch
 print(f"{torch.__version__=}")  # PyTorch version
 print(f"{torch.version.cuda=}")  # CUDA version
-import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-import numpy as np
 import torch.optim as optim
 torch.set_float32_matmul_precision('high')
-from torch import compile
 from torch.amp import GradScaler
-from torch.profiler import profile, record_function, ProfilerActivity
+from pre_training import get_output_imgs
 
 def association_loss_func(emb, labels):
     #print(f"{emb.shape=}")
@@ -32,7 +29,8 @@ def association_loss_func(emb, labels):
     #print(f"{cos_dist_matrix.shape=}")
     #print(f"{distance_target_matrix.shape=}")
     return F.mse_loss(cos_dist_matrix, distance_target_matrix)
-def association_epoch_func(model, loader, name, optimizer=None, scaler=None):
+
+def association_epoch_func(model, loader, name, optimizer=None, scaler=None, association_weight = 1):
     if optimizer is None:
         model.eval()
     else:
@@ -57,15 +55,15 @@ def association_epoch_func(model, loader, name, optimizer=None, scaler=None):
                 with torch.inference_mode():
                     with torch.no_grad():
                         #print("before inference")
-                        output, mask, emb = model(object_imgs_batch, mask_ratio=0)
+                        output, mask, emb = model(object_imgs_batch, mask_ratio=None)
                         #print("After inference")
 
             else:
-                output, mask, emb = model(object_imgs_batch, mask_ratio=0)
+                output, mask, emb = model(object_imgs_batch, mask_ratio=None)
 
             reconstruction_loss = F.mse_loss(output, object_imgs_batch)
             association_loss = association_loss_func(emb, label_batch)
-            loss = reconstruction_loss + association_loss 
+            loss = reconstruction_loss + (association_loss * association_weight)
             total_loss += loss.item()
             acc_association_loss = association_loss.item()
             acc_reconstruction_loss = reconstruction_loss.item()
@@ -89,7 +87,7 @@ def train_association(model, train_loader, val_loaders, test_loaders, n_epochs, 
     validation_loss_history = []
     scaler = GradScaler('cuda')
     print(f"training on {model.device}")
-    output_imgs = get_output_imgs(model, test_loaders[-1][1], f"{save_dir}/tpre_assocation_training.png")
+    output_imgs = get_output_imgs(model, test_loaders[-1][1], f"{save_dir}/pre_assocation_training.png")
     for epoch in range(n_epochs):
         print(f"\n\nEpoch {epoch+1}/{n_epochs}:")
         #do a training epoch
@@ -156,3 +154,34 @@ def train_association(model, train_loader, val_loaders, test_loaders, n_epochs, 
     print(f"Results saved to {save_dir}")
     print("Done")
     return model
+
+
+if __name__ == "__main__":
+    hidden_dim = 128
+    batch_size = 8
+    set_size = 4
+    n_epochs = 2
+    mask_percentage=0.75
+    loader_workers = 16
+    out_dir = f"./examples/association_training/"
+    os.makedirs(out_dir, exist_ok=True)
+    img_dir = f"{out_dir}/imgs"
+    os.makedirs(img_dir, exist_ok=True)
+    model = MaskedAutoEncoder(hidden_dim, mask_ratio=mask_percentage)
+    weight_path = "./examples/pretraining/best_model.pth"
+    if os.path.exists(weight_path):
+        model.load_state_dict(torch.load(weight_path, weights_only=True))
+        print(f"Loaded pretrain model from {weight_path}/best_model.pth")
+    else:
+        raise ValueError(f"Could not find pretrain model at {weight_path}")
+
+    if torch.cuda.is_available():
+        model = model.to('cuda')
+    train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, train=True)
+    val_dataset = MessyTableDataset("./MessyTableData/labels/val.json", set_size=set_size, train=False)
+    test_dataset = MessyTableDataset("./MessyTableData/labels/test.json", set_size=set_size, train=False)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=loader_workers, pin_memory=True)
+    val_laoder = [("val.json", DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True))]
+    test_loader = [("test.json", DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=loader_workers, pin_memory=True))]
+    model = train_association(model, train_loader, val_laoder, test_loader, n_epochs, out_dir, img_dir)

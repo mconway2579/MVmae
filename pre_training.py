@@ -84,7 +84,7 @@ def pre_train_epoch_func(model, loader, name, optimizer=None, scaler=None):
             scaler.update()
             #print("after optimization")
 
-    return total_loss / n
+    return {"total_loss":total_loss / n}
 
 
 def pretrain(model, train_loader, val_loaders, test_loaders, n_epochs, save_dir, img_dir):
@@ -169,7 +169,6 @@ if __name__ == "__main__":
     hidden_dim = 128
     batch_size = 8
     set_size = 4
-    patch_size=128
     n_pretrain_epochs = 2
     mask_percentage=0.75
     loader_workers = 16
@@ -177,7 +176,7 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
     img_dir = f"{out_dir}/imgs"
     os.makedirs(img_dir, exist_ok=True)
-    model = MaskedAutoEncoder(hidden_dim, max_seq_length=1024**2, mask_ratio=mask_percentage)
+    model = MaskedAutoEncoder(hidden_dim, mask_ratio=mask_percentage)
     if torch.cuda.is_available():
         model = model.to('cuda')
     train_dataset = MessyTableDataset("./MessyTableData/labels/train.json", set_size=set_size, train=True)
